@@ -3,7 +3,7 @@
  * @package     Joomla - > Site and Administrator payment info
  * @subpackage  com_eshop pay zarinpal plugins
  * @copyright   trangell team => https://trangell.com
- * @copyright   Copyright (C) 20016 Open Source Matters, Inc. All rights reserved.
+ * @copyright   Copyright (C) 2017 Open Source Matters, Inc. All rights reserved.
  * @license     GNU General Public License version 2 or later; see LICENSE.txt
  */
 defined('_JEXEC') or die();
@@ -19,6 +19,7 @@ class os_zarinpal extends os_payment
             'show_card_holder_name' => false
         );
         $this->setData('merchant_id',$params->get('merchant_id'));
+        $this->setData('zaringate',$params->get('zaringate'));
         
         parent::__construct($params, $config);
 	}
@@ -48,9 +49,14 @@ class os_zarinpal extends os_payment
 			
 			$resultStatus = abs($result->Status); 
 			if ($resultStatus == 100) {
-			
-			Header('Location: https://www.zarinpal.com/pg/StartPay/'.$result->Authority); 
-			//Header('Location: https://sandbox.zarinpal.com/pg/StartPay/'.$result->Authority); // for local/
+				if (intval($this->data['zaringate']) == 0){
+					Header('Location: https://www.zarinpal.com/pg/StartPay/'.$result->Authority); 
+				}
+				else {
+					Header('Location: https://www.zarinpal.com/pg/StartPay/'.$result->Authority.'/ZarinGate'); 
+				}
+				
+				//Header('Location: https://sandbox.zarinpal.com/pg/StartPay/'.$result->Authority); // for local/
 			} else {
 				echo'ERR: '.$resultStatus;
 			}
@@ -78,7 +84,12 @@ class os_zarinpal extends os_payment
 
 			if ($status == 'OK') {
 				try {
-				    $client = new SoapClient('https://www.zarinpal.com/pg/services/WebGate/wsdl', ['encoding' => 'UTF-8']); 
+					if (intval($this->data['zaringate']) == 0){
+						$client = new SoapClient('https://www.zarinpal.com/pg/services/WebGate/wsdl', ['encoding' => 'UTF-8']); 
+					}
+					else {
+						$client = new SoapClient('https://www.zarinpal.com/pg/services/WebGate/wsdl/ZarinGate', ['encoding' => 'UTF-8']); 
+					}
 					//$client = new SoapClient('https://sandbox.zarinpal.com/pg/services/WebGate/wsdl', ['encoding' => 'UTF-8']); // for local
 
 					$result = $client->PaymentVerification(
